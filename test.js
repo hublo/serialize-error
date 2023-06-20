@@ -1,8 +1,8 @@
-import {Buffer} from 'node:buffer';
-import Stream from 'node:stream';
-import test from 'ava';
-import errorConstructors from './error-constructors.js';
-import {serializeError, deserializeError, isErrorLike} from './index.js';
+const {Buffer} = require('node:buffer');
+const Stream = require('node:stream');
+const test = require('ava');
+const {errorConstructors} = require('./error-constructors');
+const {serializeError, deserializeError, isErrorLike} = require('./index');
 
 function deserializeNonError(t, value) {
 	const deserialized = deserializeError(value);

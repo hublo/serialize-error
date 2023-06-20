@@ -21,6 +21,4 @@ const list = [
 		constructor => [constructor.name, constructor],
 	);
 
-const errorConstructors = new Map(list);
-
-export default errorConstructors;
+module.exports = {errorConstructors: new Map(list)}
