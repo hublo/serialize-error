@@ -1,23 +1,23 @@
-import {Primitive, JsonObject} from 'type-fest';
+import { Primitive, JsonObject } from 'type-fest'
 
-export {default as errorConstructors} from './error-constructors.js';
+export { default as errorConstructors } from './error-constructors.js'
 
 export type ErrorObject = {
-	name?: string;
-	message?: string;
-	stack?: string;
-	cause?: unknown;
-	code?: string;
-} & JsonObject;
+	name?: string
+	message?: string
+	stack?: string
+	cause?: unknown
+	code?: string
+} & JsonObject
 
 export type ErrorLike = {
-	[key: string]: unknown;
-	name: string;
-	message: string;
-	stack: string;
-	cause?: unknown;
-	code?: string;
-};
+	[key: string]: unknown
+	name: string
+	message: string
+	stack: string
+	cause?: unknown
+	code?: string
+}
 
 export interface Options {
 	/**
@@ -39,14 +39,14 @@ export interface Options {
 	//=> {name: 'Error', message: '…', one: { two: {}}}
 	```
 	*/
-	readonly maxDepth?: number;
+	readonly maxDepth?: number
 
 	/**
 	Indicate whether to use a `.toJSON()` method if encountered in the object. This is useful when a custom error implements its own serialization logic via `.toJSON()` but you prefer to not use it.
 
 	@default true
 	*/
-	readonly useToJSON?: boolean;
+	readonly useToJSON?: boolean
 }
 
 /**
@@ -105,9 +105,10 @@ serializeError(error);
 // => {horn: 'x', name, message, stack}
 ```
 */
-export function serializeError<ErrorType>(error: ErrorType, options?: Options): ErrorType extends Primitive
-	? ErrorType
-	: ErrorObject;
+export function serializeError<ErrorType>(
+	error: ErrorType,
+	options?: Options,
+): ErrorType extends Primitive ? ErrorType : ErrorObject
 
 /**
 Deserialize a plain object or any value into an `Error` object.
@@ -135,7 +136,10 @@ console.log(error);
 // at <anonymous>:1:13
 ```
 */
-export function deserializeError(errorObject: ErrorObject | unknown, options?: Options): Error;
+export function deserializeError(
+	errorObject: ErrorObject | unknown,
+	options?: Options,
+): Error
 
 /**
 Predicate to determine whether a value looks like an error, even if it's not an instance of `Error`. It must have at least the `name`, `message`, and `stack` properties.
@@ -168,4 +172,4 @@ isErrorLike({
 //=> false
 ```
 */
-export function isErrorLike(value: unknown): value is ErrorLike;
+export function isErrorLike(value: unknown): value is ErrorLike

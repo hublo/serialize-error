@@ -17,8 +17,6 @@ const list = [
 ]
 	// Non-native Errors are used with `globalThis` because they might be missing. This filter drops them when undefined.
 	.filter(Boolean)
-	.map(
-		constructor => [constructor.name, constructor],
-	);
+	.map((constructor) => [constructor.name, constructor])
 
-module.exports = {errorConstructors: new Map(list)}
+module.exports = { errorConstructors: new Map(list) }

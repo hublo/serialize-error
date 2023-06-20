@@ -1,17 +1,17 @@
-const {errorConstructors} = require('./error-constructors');
+const { errorConstructors } = require('./error-constructors')
 
 class NonError extends Error {
-	name = 'NonError';
+	name = 'NonError'
 
 	constructor(message) {
-		super(NonError._prepareSuperMessage(message));
+		super(NonError._prepareSuperMessage(message))
 	}
 
 	static _prepareSuperMessage(message) {
 		try {
-			return JSON.stringify(message);
+			return JSON.stringify(message)
 		} catch {
-			return String(message);
+			return String(message)
 		}
 	}
 }
@@ -37,18 +37,18 @@ const commonProperties = [
 		property: 'cause',
 		enumerable: false,
 	},
-];
+]
 
-const toJsonWasCalled = Symbol('.toJSON was called');
+const toJsonWasCalled = Symbol('.toJSON was called')
 
-const toJSON = from => {
-	from[toJsonWasCalled] = true;
-	const json = from.toJSON();
-	delete from[toJsonWasCalled];
-	return json;
-};
+const toJSON = (from) => {
+	from[toJsonWasCalled] = true
+	const json = from.toJSON()
+	delete from[toJsonWasCalled]
+	return json
+}
 
-const getErrorConstructor = name => errorConstructors.get(name) ?? Error;
+const getErrorConstructor = (name) => errorConstructors.get(name) ?? Error
 
 // eslint-disable-next-line complexity
 const destroyCircular = ({
@@ -63,86 +63,94 @@ const destroyCircular = ({
 }) => {
 	if (!to) {
 		if (Array.isArray(from)) {
-			to = [];
+			to = []
 		} else if (!serialize && isErrorLike(from)) {
-			const Error = getErrorConstructor(from.name);
-			to = new Error();
+			const Error = getErrorConstructor(from.name)
+			to = new Error()
 		} else {
-			to = {};
+			to = {}
 		}
 	}
 
-	seen.push(from);
+	seen.push(from)
 
 	if (depth >= maxDepth) {
-		return to;
+		return to
 	}
 
-	if (useToJSON && typeof from.toJSON === 'function' && from[toJsonWasCalled] !== true) {
-		return toJSON(from);
+	if (
+		useToJSON &&
+		typeof from.toJSON === 'function' &&
+		from[toJsonWasCalled] !== true
+	) {
+		return toJSON(from)
 	}
 
-	const continueDestroyCircular = value => destroyCircular({
-		from: value,
-		seen: [...seen],
-		forceEnumerable,
-		maxDepth,
-		depth,
-		useToJSON,
-		serialize,
-	});
+	const continueDestroyCircular = (value) =>
+		destroyCircular({
+			from: value,
+			seen: [...seen],
+			forceEnumerable,
+			maxDepth,
+			depth,
+			useToJSON,
+			serialize,
+		})
 
 	for (const [key, value] of Object.entries(from)) {
 		// eslint-disable-next-line node/prefer-global/buffer
 		if (typeof Buffer === 'function' && Buffer.isBuffer(value)) {
-			to[key] = '[object Buffer]';
-			continue;
+			to[key] = '[object Buffer]'
+			continue
 		}
 
 		// TODO: Use `stream.isReadable()` when targeting Node.js 18.
-		if (value !== null && typeof value === 'object' && typeof value.pipe === 'function') {
-			to[key] = '[object Stream]';
-			continue;
+		if (
+			value !== null &&
+			typeof value === 'object' &&
+			typeof value.pipe === 'function'
+		) {
+			to[key] = '[object Stream]'
+			continue
 		}
 
 		if (typeof value === 'function') {
-			continue;
+			continue
 		}
 
 		if (!value || typeof value !== 'object') {
-			to[key] = value;
-			continue;
+			to[key] = value
+			continue
 		}
 
 		if (!seen.includes(from[key])) {
-			depth++;
-			to[key] = continueDestroyCircular(from[key]);
+			depth++
+			to[key] = continueDestroyCircular(from[key])
 
-			continue;
+			continue
 		}
 
-		to[key] = '[Circular]';
+		to[key] = '[Circular]'
 	}
 
-	for (const {property, enumerable} of commonProperties) {
+	for (const { property, enumerable } of commonProperties) {
 		if (typeof from[property] !== 'undefined' && from[property] !== null) {
 			Object.defineProperty(to, property, {
-				value: isErrorLike(from[property]) ? continueDestroyCircular(from[property]) : from[property],
+				value: isErrorLike(from[property])
+					? continueDestroyCircular(from[property])
+					: from[property],
 				enumerable: forceEnumerable ? true : enumerable,
 				configurable: true,
 				writable: true,
-			});
+			})
 		}
 	}
 
-	return to;
-};
+	return to
+}
 
 function serializeError(value, options = {}) {
-	const {
-		maxDepth = Number.POSITIVE_INFINITY,
-		useToJSON = true,
-	} = options;
+	const { maxDepth = Number.POSITIVE_INFINITY, useToJSON = true } = options
 
 	if (typeof value === 'object' && value !== null) {
 		return destroyCircular({
@@ -153,27 +161,27 @@ function serializeError(value, options = {}) {
 			depth: 0,
 			useToJSON,
 			serialize: true,
-		});
+		})
 	}
 
 	// People sometimes throw things besides Error objects…
 	if (typeof value === 'function') {
 		// `JSON.stringify()` discards functions. We do too, unless a function is thrown directly.
-		return `[Function: ${value.name ?? 'anonymous'}]`;
+		return `[Function: ${value.name ?? 'anonymous'}]`
 	}
 
-	return value;
+	return value
 }
 
 function deserializeError(value, options = {}) {
-	const {maxDepth = Number.POSITIVE_INFINITY} = options;
+	const { maxDepth = Number.POSITIVE_INFINITY } = options
 
 	if (value instanceof Error) {
-		return value;
+		return value
 	}
 
 	if (isMinimumViableSerializedError(value)) {
-		const Error = getErrorConstructor(value.name);
+		const Error = getErrorConstructor(value.name)
 		return destroyCircular({
 			from: value,
 			seen: [],
@@ -181,29 +189,33 @@ function deserializeError(value, options = {}) {
 			maxDepth,
 			depth: 0,
 			serialize: false,
-		});
+		})
 	}
 
-	return new NonError(value);
+	return new NonError(value)
 }
 
 function isErrorLike(value) {
-	return Boolean(value)
-	&& typeof value === 'object'
-	&& 'name' in value
-	&& 'message' in value
-	&& 'stack' in value;
+	return (
+		Boolean(value) &&
+		typeof value === 'object' &&
+		'name' in value &&
+		'message' in value &&
+		'stack' in value
+	)
 }
 
 function isMinimumViableSerializedError(value) {
-	return Boolean(value)
-	&& typeof value === 'object'
-	&& 'message' in value
-	&& !Array.isArray(value);
+	return (
+		Boolean(value) &&
+		typeof value === 'object' &&
+		'message' in value &&
+		!Array.isArray(value)
+	)
 }
 
 module.exports = {
 	serializeError,
 	deserializeError,
-	isErrorLike
-};
+	isErrorLike,
+}
