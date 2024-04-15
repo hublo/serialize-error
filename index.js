@@ -39,12 +39,12 @@ const commonProperties = [
 	},
 ]
 
-const toJsonWasCalled = Symbol('.toJSON was called')
+const toJsonWasCalled = new WeakSet();
 
 const toJSON = (from) => {
-	from[toJsonWasCalled] = true
+	toJsonWasCalled.add(from);
 	const json = from.toJSON()
-	delete from[toJsonWasCalled]
+	toJsonWasCalled.delete(from);
 	return json
 }
 
@@ -78,12 +78,8 @@ const destroyCircular = ({
 		return to
 	}
 
-	if (
-		useToJSON &&
-		typeof from.toJSON === 'function' &&
-		from[toJsonWasCalled] !== true
-	) {
-		return toJSON(from)
+	if (useToJSON && typeof from.toJSON === 'function' && !toJsonWasCalled.has(from)) {
+		return toJSON(from);
 	}
 
 	const continueDestroyCircular = (value) =>
@@ -98,8 +94,7 @@ const destroyCircular = ({
 		})
 
 	for (const [key, value] of Object.entries(from)) {
-		// eslint-disable-next-line node/prefer-global/buffer
-		if (typeof Buffer === 'function' && Buffer.isBuffer(value)) {
+		if (value && value instanceof Uint8Array && value.constructor.name === 'Buffer') {
 			to[key] = '[object Buffer]'
 			continue
 		}
@@ -119,7 +114,11 @@ const destroyCircular = ({
 		}
 
 		if (!value || typeof value !== 'object') {
-			to[key] = value
+			// Gracefully handle non-configurable errors like `DOMException`.
+			try {
+				to[key] = value;
+			} catch {}
+
 			continue
 		}
 
@@ -167,7 +166,8 @@ function serializeError(value, options = {}) {
 	// People sometimes throw things besides Error objects…
 	if (typeof value === 'function') {
 		// `JSON.stringify()` discards functions. We do too, unless a function is thrown directly.
-		return `[Function: ${value.name ?? 'anonymous'}]`
+		// We intentionally use `||` because `.name` is an empty string for anonymous functions.
+		return `[Function: ${value.name || 'anonymous'}]`;
 	}
 
 	return value
